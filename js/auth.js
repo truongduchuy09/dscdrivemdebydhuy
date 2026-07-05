@@ -1,7 +1,7 @@
 // --- CẤU HÌNH LIÊN KẾT HỆ THỐNG ---
 const CLIENT_ID = '1523300504392958055'; // Điền CLIENT_ID ứng dụng Discord của bạn vào đây
 const REDIRECT_URI = window.location.origin + window.location.pathname; // Tự động lấy URL GitHub Pages hiện tại
-const BACKEND_URL = 'http://14.244.198.134:5000 '; // Đường dẫn Web Service chạy Node.js trên Render
+const BACKEND_URL = 'http://14.244.198.134:5000'; // Đường dẫn Web Service chạy Node.js trên Render
 
 document.addEventListener('DOMContentLoaded', () => {
     const btnLogin = document.getElementById('btn-login');
