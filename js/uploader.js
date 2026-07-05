@@ -2,7 +2,7 @@
 const CHUNK_SIZE = 7 * 1024 * 1024; 
 
 // Cấu hình địa chỉ API độc lập của con BOT DRIVE (Microservice giải phóng RAM)
-const BACKEND_DRIVE_URL = 'http://localhost:5000'; // Đổi thành link Render Drive của bạn khi deploy
+const BACKEND_DRIVE_URL = 'http://14.244.198.134:4000'; // Đổi thành link Render Drive của bạn khi deploy
 
 document.addEventListener('DOMContentLoaded', () => {
     const fileInput = document.getElementById('file-input');
