@@ -3,132 +3,95 @@ const CLIENT_ID = '1523300504392958055'; // Điền CLIENT_ID ứng dụng Disco
 const REDIRECT_URI = window.location.origin + window.location.pathname; // Tự động lấy URL GitHub Pages hiện tại
 const BACKEND_URL = '14.244.198.134:5000 '; // Đường dẫn Web Service chạy Node.js trên Render
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+    const authCard = document.getElementById('auth-card');
+    const driveCard = document.getElementById('drive-card');
     const btnLogin = document.getElementById('btn-login');
     const btnLogout = document.getElementById('btn-logout');
-    const loginScreen = document.getElementById('login-screen');
-    const mainDrive = document.getElementById('main-drive'); // ID của khung giao diện Google Drive gốc
-    const loginError = document.getElementById('login-error');
-    const loginLoading = document.getElementById('login-loading');
+    const authError = document.getElementById('auth-error');
+    const userAvatar = document.getElementById('user-avatar');
+    const userName = document.getElementById('user-name');
 
-    // 1. Kiểm tra URL xem có nhận được callback code từ Discord không
-    const urlParams = new URLSearchParams(window.location.search);
+    // Sự kiện click nút đăng nhập Discord
+    if (btnLogin) {
+        btnLogin.addEventListener('click', () => {
+            window.location.href = DISCORD_OAUTH_URL;
+        });
+    }
+
+    // Sự kiện click Đăng xuất
+    if (btnLogout) {
+        btnLogout.addEventListener('click', () => {
+            localStorage.clear();
+            window.location.href = window.location.origin + window.location.pathname;
+        });
+    }
+
+    // 1. KIỂM TRA ĐIỀU HƯỚNG CALLBACK OAUTH2 (Khi từ Discord chuyển hướng về)
+    const urlParams = new URLSearchParams(window.search || window.location.search);
     const code = urlParams.get('code');
 
     if (code) {
-        // Xóa sạch param ?code trên URL để giữ thanh địa chỉ sạch đẹp
+        // Xóa code trên thanh địa chỉ cho sạch URL
         window.history.replaceState({}, document.title, window.location.pathname);
-        handleDiscordCallback(code);
+        
+        try {
+            btnLogin.innerText = 'Đang xác thực hệ thống...';
+            btnLogin.disabled = true;
+
+            const res = await fetch(`${BACKEND_AUTH_URL}/api/auth/callback`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ code })
+            });
+
+            const data = await res.json();
+
+            if (!res.ok) throw new Error(data.message || 'Xác thực thất bại!');
+
+            // Lưu dữ liệu định danh phiên đăng nhập vào máy người dùng
+            localStorage.setItem('session_token', data.session_token);
+            localStorage.setItem('user_info', JSON.stringify(data.user));
+
+            showDriveScreen(data.user);
+        } catch (err) {
+            console.error(err);
+            authError.textContent = err.message;
+            authError.classList.remove('hidden');
+            btnLogin.innerText = 'Liên kết với Discord';
+            btnLogin.disabled = false;
+        }
         return;
     }
 
-    // 2. Nếu không có code, kiểm tra Session Token cũ trong bộ nhớ trình duyệt
-    const sessionToken = localStorage.getItem('session_token');
-    if (sessionToken) {
-        verifySession(sessionToken);
-    } else {
-        showLoginScreen();
-    }
+    // 2. TỰ ĐỘNG VERIFY NẾU ĐÃ CÓ SẴN SESSION TOKEN TRONG MÁY
+    const savedToken = localStorage.getItem('session_token');
+    const savedUser = localStorage.getItem('user_info');
 
-    // Sự kiện khi click nút Đăng nhập
-    if (btnLogin) {
-        btnLogin.addEventListener('click', () => {
-            const discordAuthUrl = `https://discord.com/oauth2/authorize?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=code&scope=identify`;
-            window.location.href = discordAuthUrl;
-        });
-    }
-
-    // Sự kiện khi click nút Đăng xuất
-    if (btnLogout) {
-        btnLogout.addEventListener('click', () => {
-            localStorage.removeItem('session_token');
-            window.location.reload();
-        });
-    }
-
-    // Hàm gửi mã code lên Node.js Backend để đổi lấy Session Token
-    async function handleDiscordCallback(authCode) {
-        setLoadingState(true);
+    if (savedToken && savedUser) {
         try {
-            const response = await fetch(`${BACKEND_URL}/api/auth/callback`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ code: authCode })
+            const res = await fetch(`${BACKEND_AUTH_URL}/api/auth/verify`, {
+                headers: { 'Authorization': `Bearer ${savedToken}` }
             });
 
-            const data = await response.json();
-
-            if (response.ok && data.session_token) {
-                localStorage.setItem('session_token', data.session_token);
-                displayDriveUI(data.user);
+            if (res.ok) {
+                showDriveScreen(JSON.parse(savedUser));
             } else {
-                showError(data.message || 'Xác thực tài khoản thất bại!');
+                // Token cũ hỏng hoặc hết hạn -> xóa sạch
+                localStorage.clear();
             }
-        } catch (error) {
-            showError('Không thể kết nối đến máy chủ xác thực Backend.');
-        } finally {
-            setLoadingState(false);
+        } catch (err) {
+            console.error("Lỗi xác thực tự động:", err);
         }
     }
 
-    // Hàm xác minh Token mỗi khi F5 hoặc truy cập lại trang web
-    async function verifySession(token) {
-        setLoadingState(true);
-        try {
-            const response = await fetch(`${BACKEND_URL}/api/auth/verify`, {
-                method: 'GET',
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            const data = await response.json();
-
-            if (response.ok) {
-                displayDriveUI(data.user);
-            } else {
-                localStorage.removeItem('session_token');
-                showLoginScreen();
-            }
-        } catch (error) {
-            showError('Hệ thống đang khởi động (Render ngủ đông), vui lòng đợi giây lát rồi tải lại trang...');
-        } finally {
-            setLoadingState(false);
-        }
-    }
-
-    function displayDriveUI(user) {
-        if (loginScreen) loginScreen.classList.add('hidden');
-        if (mainDrive) mainDrive.classList.remove('hidden');
-        
-        // Cập nhật Avatar và Tên tài khoản lên giao diện Google Drive
-        const avatarUrl = user.avatar 
+    function showDriveScreen(user) {
+        authCard.style.display = 'none';
+        driveCard.style.display = 'flex';
+        userName.textContent = user.username;
+        // Hiển thị avatar người dùng từ CDN Discord
+        userAvatar.src = user.avatar 
             ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png`
-            : `https://cdn.discordapp.com/embed/avatars/0.png`;
-            
-        const uiAvatar = document.getElementById('user-avatar');
-        const uiName = document.getElementById('user-name');
-        
-        if (uiAvatar) uiAvatar.src = avatarUrl;
-        if (uiName) uiName.textContent = user.username;
-    }
-
-    function showLoginScreen() {
-        if (loginScreen) loginScreen.classList.remove('hidden');
-        if (mainDrive) mainDrive.classList.add('hidden');
-    }
-
-    function setLoadingState(isLoading) {
-        if (isLoading) {
-            if (loginLoading) loginLoading.classList.remove('hidden');
-            if (loginError) loginError.classList.add('hidden');
-        } else {
-            if (loginLoading) loginLoading.classList.add('hidden');
-        }
-    }
-
-    function showError(msg) {
-        showLoginScreen();
-        if (loginError) {
-            loginError.textContent = msg;
-            loginError.classList.remove('hidden');
-        }
+            : 'https://cdn.discordapp.com/embed/avatars/0.png';
     }
 });
