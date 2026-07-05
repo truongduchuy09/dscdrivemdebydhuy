@@ -1,5 +1,5 @@
 // --- CẤU HÌNH LIÊN KẾT HỆ THỐNG ---
-const CLIENT_ID = '112233445566778899'; // Điền CLIENT_ID ứng dụng Discord của bạn vào đây
+const CLIENT_ID = '1523300504392958055'; // Điền CLIENT_ID ứng dụng Discord của bạn vào đây
 const REDIRECT_URI = window.location.origin + window.location.pathname; // Tự động lấy URL GitHub Pages hiện tại
 const BACKEND_URL = 'https://your-bot-auth.onrender.com'; // Đường dẫn Web Service chạy Node.js trên Render
 
