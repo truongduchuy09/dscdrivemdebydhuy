@@ -3,88 +3,106 @@ const CLIENT_ID = '1523300504392958055'; // Điền CLIENT_ID ứng dụng Disco
 const REDIRECT_URI = window.location.origin + window.location.pathname; // Tự động lấy URL GitHub Pages hiện tại
 const BACKEND_URL = '14.244.198.134:5000 '; // Đường dẫn Web Service chạy Node.js trên Render
 
-document.addEventListener("DOMContentLoaded", () => {
-    console.log("=== Auth.js đã tải xong và sẵn sàng ===");
+document.addEventListener('DOMContentLoaded', () => {
+    const btnLogin = document.getElementById('btn-login');
+    const btnLogout = document.getElementById('btn-logout');
+    const loginScreen = document.getElementById('login-section'); // Khớp với ID phần login của em
+    const mainDrive = document.getElementById('main-app-section'); // Khớp với ID giao diện chính của em
+    const loginError = document.getElementById('login-error');
+    const loginLoading = document.getElementById('login-loading');
 
-    // 1. LẤY CÁC PHẦN TỬ GIAO DIỆN (UI ELEMENTS)
-    const btnLogin = document.getElementById("btn-login");
-    const loginSection = document.getElementById("login-section");
-    const mainAppSection = document.getElementById("main-app-section");
-    const userAvatar = document.getElementById("user-avatar");
-    const userName = document.getElementById("user-name");
-
-    // 2. XỬ LÝ SỰ KIỆN BẤM NÚT "LIÊN KẾT VỚI DISCORD"
-    if (btnLogin) {
-        console.log("✓ Tìm thấy nút Liên kết Discord (id='btn-login')");
-        btnLogin.onclick = function(e) {
-            e.preventDefault();
-            console.log("🚀 Nút được bấm! Đang chuyển hướng tới Discord Oauth2...");
-            
-            if (DISCORD_OAUTH_URL === 'DÁN_LINK_URL_GENERATOR_CỦA_EM_VÀO_ĐÂY' || !DISCORD_OAUTH_URL) {
-                alert("Lỗi: Bạn chưa cấu hình DISCORD_OAUTH_URL ở đầu file js/auth.js!");
-                return;
-            }
-            
-            // Ép trình duyệt chuyển hướng sang trang đăng nhập Discord
-            window.location.href = DISCORD_OAUTH_URL;
-        };
-    } else {
-        console.error("❌ Lỗi nghiêm trọng: Không tìm thấy nút bấm nào có id='btn-login' trong file HTML!");
-    }
-
-    // 3. XỬ LÝ HẬU OAUTH2 (Khi Discord trả về Code trên URL)
+    // 1. Kiểm tra URL xem có nhận được callback code từ Discord không
     const urlParams = new URLSearchParams(window.location.search);
     const code = urlParams.get('code');
 
     if (code) {
-        console.log("⚡ Nhận được Code xác thực từ Discord:", code);
-        
-        // Xóa code thừa trên thanh địa chỉ cho trình duyệt sạch đẹp
         window.history.replaceState({}, document.title, window.location.pathname);
+        handleDiscordCallback(code);
+        return;
+    }
 
-        // Gửi code này lên Backend Auth (Port 4000) để đổi lấy thông tin User
-        fetch(`${BACKEND_AUTH_URL}/api/auth/callback?code=${code}`)
-            .then(res => {
-                if (!res.ok) throw new Error("Backend trả về lỗi khi xác thực code");
-                return res.json();
-            })
-            .then(data => {
-                console.log("🎉 Đăng nhập thành công! Thông tin User nhận được:", data);
-                
-                // Lưu thông tin vào LocalStorage để các file JS khác (như uploader.js) xài chung
-                localStorage.setItem("discord_user", JSON.stringify(data.user));
-
-                // Hiển thị giao diện ứng dụng chính
-                showMainApp(data.user);
-            })
-            .catch(err => {
-                console.error("❌ Lỗi quá trình trao đổi Token với Backend Auth:", err);
-                alert("Đăng nhập thất bại! Vui lòng kiểm tra lại Backend Auth (Port 4000) xem đã bật chưa.");
-            });
+    // 2. Nếu không có code, kiểm tra Session/User cũ trong bộ nhớ trình duyệt
+    const savedUser = localStorage.getItem('discord_user');
+    if (savedUser) {
+        displayDriveUI(JSON.parse(savedUser));
     } else {
-        // Nếu không có code trên URL, kiểm tra xem trước đó đã đăng nhập chưa
-        const savedUser = localStorage.getItem("discord_user");
-        if (savedUser) {
-            console.log("💾 Tìm thấy phiên đăng nhập cũ trong máy.");
-            showMainApp(JSON.parse(savedUser));
-        } else {
-            console.log("👤 Chưa đăng nhập. Đang đứng ở màn hình Login.");
-            if (loginSection) loginSection.classList.remove("hidden");
-            if (mainAppSection) mainAppSection.classList.add("hidden");
+        showLoginScreen();
+    }
+
+    // Sự kiện khi click nút Đăng nhập
+    if (btnLogin) {
+        btnLogin.addEventListener('click', (e) => {
+            e.preventDefault();
+            const discordAuthUrl = `https://discord.com/oauth2/authorize?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=code&scope=identify`;
+            window.location.href = discordAuthUrl;
+        });
+    }
+
+    // Sự kiện khi click nút Đăng xuất (Nếu em có làm nút này)
+    if (btnLogout) {
+        btnLogout.addEventListener('click', (e) => {
+            e.preventDefault();
+            localStorage.removeItem('discord_user');
+            window.location.reload();
+        });
+    }
+
+    // Hàm gửi mã code lên Node.js Backend để đổi lấy dữ liệu User
+    async function handleDiscordCallback(authCode) {
+        setLoadingState(true);
+        try {
+            // Đổi phương thức sang GET tương thích với endpoint callback hiện tại của em
+            const response = await fetch(`${BACKEND_URL}/api/auth/callback?code=${authCode}`);
+            const data = await response.json();
+
+            if (response.ok && data.user) {
+                localStorage.setItem('discord_user', JSON.stringify(data.user));
+                displayDriveUI(data.user);
+            } else {
+                showError(data.message || 'Xác thực tài khoản thất bại!');
+            }
+        } catch (error) {
+            showError('Không thể kết nối đến máy chủ xác thực Backend.');
+        } finally {
+            setLoadingState(false);
         }
     }
 
-    // 4. HÀM CHUYỂN ĐỔI GIAO DIỆN KHI ĐĂNG NHẬP THÀNH CÔNG
-    function showMainApp(user) {
-        if (loginSection) loginSection.classList.add("hidden");
-        if (mainAppSection) mainAppSection.classList.remove("hidden");
+    function displayDriveUI(user) {
+        if (loginScreen) loginScreen.classList.add('hidden');
+        if (mainDrive) mainDrive.classList.remove('hidden');
         
-        // Cập nhật Avatar và Tên của User Discord lên góc phải màn hình
-        if (userAvatar && user.avatar) {
-            userAvatar.src = `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png`;
+        const avatarUrl = user.avatar 
+            ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png`
+            : `https://cdn.discordapp.com/embed/avatars/0.png`;
+            
+        const uiAvatar = document.getElementById('user-avatar');
+        const uiName = document.getElementById('user-name');
+        
+        if (uiAvatar) uiAvatar.src = avatarUrl;
+        if (uiName) uiName.textContent = user.global_name || user.username;
+    }
+
+    function showLoginScreen() {
+        if (loginScreen) loginScreen.classList.remove('hidden');
+        if (mainDrive) mainDrive.classList.add('hidden');
+    }
+
+    function setLoadingState(isLoading) {
+        if (loginLoading) {
+            if (isLoading) loginLoading.classList.remove('hidden');
+            else loginLoading.classList.add('hidden');
         }
-        if (userName) {
-            userName.textContent = user.global_name || user.username;
+        if (isLoading && loginError) loginError.classList.add('hidden');
+    }
+
+    function showError(msg) {
+        showLoginScreen();
+        if (loginError) {
+            loginError.textContent = msg;
+            loginError.classList.remove('hidden');
+        } else {
+            alert(msg);
         }
     }
 });
