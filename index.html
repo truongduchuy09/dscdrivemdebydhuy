@@ -2,70 +2,91 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <title>Discord Cloud Drive</title>
-    <!-- Giữ nguyên các thẻ link CSS gốc của mã nguồn... -->
-    
-    <!-- Nhúng thêm File CSS Custom Auth -->
-    <link rel="stylesheet" href="css/auth-custom.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Discord Unlimited Cloud Drive</title>
+    <!-- Nhúng Tailwind CSS để giao diện đẹp chuẩn Google Drive -->
+    <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
+<body class="bg-gray-50 text-gray-800 font-sans min-h-screen flex flex-col justify-center items-center p-4">
 
-    <!-- 1. MÀN HÌNH ĐĂNG NHẬP CHẶN BÊN NGOÀI -->
-    <div id="login-screen">
-        <div class="login-card">
-            <div class="drive-logo">
-                <img src="https://upload.wikimedia.org/wikipedia/commons/1/12/Google_Drive_icon_%282020%29.svg" alt="Drive Logo">
-                <h2>Discord Drive</h2>
-            </div>
-            <p class="login-desc">Hệ thống lưu trữ dữ liệu không giới hạn qua đám mây Discord. Vui lòng đăng nhập để tiếp tục.</p>
-            
-            <button id="btn-login" class="btn-discord">
-                <img src="https://assets-global.website-files.com/6257adef93867e50d84d30e2/636e0a6a49cf127bf92de1e2_icon_clyde_blurple_RGB.png" alt="Discord">
-                Đăng nhập bằng Discord
-            </button>
-
-            <!-- Trạng thái chờ và thông báo lỗi -->
-            <div id="login-loading" class="spinner hidden"></div>
-            <div id="login-error" class="error-msg hidden"></div>
+    <!-- ================= MÀN HÌNH ĐĂNG NHẬP (AUTH BLOCK) ================= -->
+    <div id="auth-card" class="max-w-md w-full bg-white p-8 rounded-2xl shadow-xl border border-gray-100 text-center">
+        <div class="w-20 h-20 bg-blue-100 rounded-2xl flex items-center justify-center mx-auto mb-5 text-4xl">
+            🔐
         </div>
-    </div>
-
-    <!-- 2. BỌC TOÀN BỘ GIAO DIỆN GỐC CỦA MÃ NGUỒN VÀO ĐÂY -->
-    <div id="main-drive" class="hidden">
+        <h2 class="text-2xl font-bold text-gray-900 mb-2">Đăng nhập Hệ thống</h2>
+        <p class="text-sm text-gray-500 mb-8">Vui lòng liên kết tài khoản Discord của bạn để truy cập vào phân vùng lưu trữ đám mây riêng tư.</p>
         
-        <!-- BÊN TRONG NÀY LÀ TOÀN BỘ CODE HTML GỐC CỦA MÃ NGUỒN CLONE GOOGLE DRIVE -->
-        <!-- Tìm chỗ hiển thị User Profile của họ và thay bằng cấu trúc này để js gán dữ liệu: -->
-        <!-- <img id="user-avatar" src="" alt="Avatar"> -->
-        <!-- <span id="user-name">Đang tải...</span> -->
-        <!-- <button id="btn-logout">Đăng xuất</button> -->
-
-        <!-- Đừng quên chèn một thẻ input ẩn ở đâu đó trong này để hỗ trợ upload -->
-        <input type="file" id="file-input" hidden>
-
+        <button id="btn-login" class="w-full bg-[#5865F2] hover:bg-[#4752C4] text-white font-semibold py-3 px-4 rounded-xl transition flex items-center justify-center gap-3 shadow-lg shadow-blue-500/20">
+            <!-- Discord Icon SVG -->
+            <svg class="w-6 h-6 fill-current" viewBox="0 0 127.14 96.36" xmlns="http://www.w3.org/2000/svg"><path d="M107.7,8.07A105.15,105.15,0,0,0,77.26,0a77.19,77.19,0,0,0-3.3,6.83A96.67,96.67,0,0,0,53.22,6.83,77.19,77.19,0,0,0,49.88,0,105.15,105.15,0,0,0,19.44,8.07C3.66,31.58-1.86,54.65,1,77.53A105.73,105.73,0,0,0,32,96.36a74.37,74.37,0,0,0,6.53-10.63,68.86,68.86,0,0,1-10.31-5c.87-.64,1.72-1.32,2.53-2a75.71,75.71,0,0,0,72.76,0c.81.71,1.66,1.38,2.53,2a68.69,68.69,0,0,1-10.31,5,74.87,74.87,0,0,0,6.53,10.63,105.51,105.51,0,0,0,31.58-18.83C129.07,48.73,123.05,25.9,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53S36.18,40.36,42.45,40.36,53.83,46,53.83,53,48.72,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.24,60,73.24,53S78.41,40.36,84.69,40.36,96.07,46,96.07,53,91,65.69,84.69,65.69Z"/></svg>
+            Liên kết với Discord
+        </button>
+        
+        <!-- Hộp thông báo lỗi Auth (Ví dụ: Không nằm trong Whitelist) -->
+        <div id="auth-error" class="mt-4 p-3 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm font-medium hidden"></div>
     </div>
 
-    <!-- 3. HỘP TIẾN TRÌNH TẢI LÊN (NẰM ĐÈ GÓC DƯỚI BÊN PHẢI) -->
-    <div id="upload-progress-box" class="progress-box hidden">
-        <div class="file-details">
-            <span id="upload-file-name">filename.zip</span>
-            <span id="upload-file-size">(0 MB)</span>
+
+    <!-- ================= MÀN HÌNH QUẢN LÝ DRIVE (DRIVE BLOCK) ================= -->
+    <div id="drive-card" class="max-w-4xl w-full bg-white rounded-2xl shadow-xl border border-gray-100 p-6 hidden flex-col">
+        <!-- Header thông tin User -->
+        <div class="flex justify-between items-center pb-5 border-b border-gray-100 mb-6">
+            <div class="flex items-center gap-3">
+                <img id="user-avatar" class="w-10 h-10 rounded-full border border-gray-200" src="" alt="Avatar">
+                <div>
+                    <h3 id="user-name" class="font-bold text-gray-900 leading-tight">Username</h3>
+                    <span class="text-xs text-green-500 font-medium flex items-center gap-1">● Phân vùng bảo mật Active</span>
+                </div>
+            </div>
+            <button id="btn-logout" class="text-sm font-medium text-gray-400 hover:text-red-500 transition px-3 py-1.5 rounded-lg hover:bg-red-50">
+                Đăng xuất
+            </button>
         </div>
-        <div class="progress-bar-bg">
-            <div id="progress-bar-fill" class="progress-bar-fill" style="width: 0%"></div>
-        </div>
-        <div class="status-row">
-            <span id="upload-status-text">Đang cắt mảnh file...</span>
-            <span id="upload-percentage">0%</span>
-        </div>
-        <!-- Thông báo tự động đếm ngược nếu dính Rate Limit 429 -->
-        <div id="overload-warning" class="warning-box hidden">
-            <span>⚠️</span>
-            <p>Discord quá tải! Tự động thử lại sau <strong id="cooldown-timer">00</strong> giây...</p>
+
+        <h2 class="text-xl font-bold mb-1 flex items-center gap-2 text-gray-800">
+            📁 Kho Tải Lên Tập Tin
+        </h2>
+        <p class="text-xs text-gray-400 mb-5">Hệ thống mã hóa tự động chia nhỏ file thành các mảng 7MB rồi đẩy vào Category riêng tư trên Discord.</p>
+
+        <!-- Khung Kéo thả / Chọn file -->
+        <label for="file-input" class="flex flex-col items-center justify-center w-full h-44 border-2 border-dashed border-gray-200 hover:border-blue-400 rounded-xl cursor-pointer bg-gray-50/50 hover:bg-blue-50/20 transition group">
+            <div class="flex flex-col items-center justify-center pt-5 pb-6 text-center px-4">
+                <span class="text-3xl mb-2 group-hover:scale-110 transition duration-300">📤</span>
+                <p class="mb-1 text-sm text-gray-700"><span class="font-semibold text-blue-600">Nhấn để chọn tập tin</span> hoặc kéo thả vào đây</p>
+                <p class="text-xs text-gray-400">Hỗ trợ mọi định dạng file (Không giới hạn tổng dung lượng)</p>
+            </div>
+            <input id="file-input" type="file" class="hidden" />
+        </label>
+
+        <!-- ================= HỘP TIẾN TRÌNH TẢI FILE CẮT MẢNH ================= -->
+        <div id="upload-progress-box" class="mt-5 p-4 bg-gray-50 rounded-xl border border-gray-200 hidden">
+            <div class="flex justify-between items-center mb-2">
+                <div class="truncate max-w-[75%]">
+                    <span id="upload-file-name" class="font-semibold text-sm text-gray-800 block truncate">filename.zip</span>
+                    <span id="upload-file-size" class="text-xs text-gray-400 block mt-0.5">0.00 MB</span>
+                </div>
+                <span id="upload-percentage" class="text-sm font-extrabold text-blue-600">0%</span>
+            </div>
+            
+            <!-- Thanh Progress Bar -->
+            <div class="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+                <div id="progress-bar-fill" class="bg-blue-600 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+            </div>
+
+            <div class="flex justify-between items-center mt-2.5 text-xs text-gray-500">
+                <span id="upload-status-text" class="italic">Đang chuẩn bị phân mảnh...</span>
+            </div>
+
+            <!-- Khung cảnh báo khi chạm giới hạn ngăn chặn spam mạng Discord -->
+            <div id="overload-warning" class="mt-3 p-2.5 bg-amber-50 border border-amber-200 rounded-lg text-amber-700 text-xs flex items-center gap-2 hidden animate-pulse">
+                ⚠️ Cụm Discord đang nạp dữ liệu chậm để tránh giới hạn spam, tự động tiếp tục sau <span id="cooldown-timer" class="font-bold text-sm text-amber-900">0</span> giây...
+            </div>
         </div>
     </div>
 
-    <!-- --- NHÚNG FILE SCRIPT ĐIỀU HƯỚNG --- -->
+    <!-- --- NHÚNG CÁC SCRIPT ĐIỀU HƯỚNG --- -->
     <script src="js/auth.js"></script>
-    <!-- Các file uploader.js, drive.js và script gốc của UI sẽ khai báo tiếp phía dưới -->
+    <script src="js/uploader.js"></script>
 </body>
 </html>
