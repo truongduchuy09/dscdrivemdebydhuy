@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Discord Cloud Drive</title>
+    <!-- Giữ nguyên các thẻ link CSS gốc của mã nguồn... -->
+    
+    <!-- Nhúng thêm File CSS Custom Auth -->
+    <link rel="stylesheet" href="css/auth-custom.css">
+</head>
+<body>
+
+    <!-- 1. MÀN HÌNH ĐĂNG NHẬP CHẶN BÊN NGOÀI -->
+    <div id="login-screen">
+        <div class="login-card">
+            <div class="drive-logo">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/1/12/Google_Drive_icon_%282020%29.svg" alt="Drive Logo">
+                <h2>Discord Drive</h2>
+            </div>
+            <p class="login-desc">Hệ thống lưu trữ dữ liệu không giới hạn qua đám mây Discord. Vui lòng đăng nhập để tiếp tục.</p>
+            
+            <button id="btn-login" class="btn-discord">
+                <img src="https://assets-global.website-files.com/6257adef93867e50d84d30e2/636e0a6a49cf127bf92de1e2_icon_clyde_blurple_RGB.png" alt="Discord">
+                Đăng nhập bằng Discord
+            </button>
+
+            <!-- Trạng thái chờ và thông báo lỗi -->
+            <div id="login-loading" class="spinner hidden"></div>
+            <div id="login-error" class="error-msg hidden"></div>
+        </div>
+    </div>
+
+    <!-- 2. BỌC TOÀN BỘ GIAO DIỆN GỐC CỦA MÃ NGUỒN VÀO ĐÂY -->
+    <div id="main-drive" class="hidden">
+        
+        <!-- BÊN TRONG NÀY LÀ TOÀN BỘ CODE HTML GỐC CỦA MÃ NGUỒN CLONE GOOGLE DRIVE -->
+        <!-- Tìm chỗ hiển thị User Profile của họ và thay bằng cấu trúc này để js gán dữ liệu: -->
+        <!-- <img id="user-avatar" src="" alt="Avatar"> -->
+        <!-- <span id="user-name">Đang tải...</span> -->
+        <!-- <button id="btn-logout">Đăng xuất</button> -->
+
+        <!-- Đừng quên chèn một thẻ input ẩn ở đâu đó trong này để hỗ trợ upload -->
+        <input type="file" id="file-input" hidden>
+
+    </div>
+
+    <!-- 3. HỘP TIẾN TRÌNH TẢI LÊN (NẰM ĐÈ GÓC DƯỚI BÊN PHẢI) -->
+    <div id="upload-progress-box" class="progress-box hidden">
+        <div class="file-details">
+            <span id="upload-file-name">filename.zip</span>
+            <span id="upload-file-size">(0 MB)</span>
+        </div>
+        <div class="progress-bar-bg">
+            <div id="progress-bar-fill" class="progress-bar-fill" style="width: 0%"></div>
+        </div>
+        <div class="status-row">
+            <span id="upload-status-text">Đang cắt mảnh file...</span>
+            <span id="upload-percentage">0%</span>
+        </div>
+        <!-- Thông báo tự động đếm ngược nếu dính Rate Limit 429 -->
+        <div id="overload-warning" class="warning-box hidden">
+            <span>⚠️</span>
+            <p>Discord quá tải! Tự động thử lại sau <strong id="cooldown-timer">00</strong> giây...</p>
+        </div>
+    </div>
+
+    <!-- --- NHÚNG FILE SCRIPT ĐIỀU HƯỚNG --- -->
+    <script src="js/auth.js"></script>
+    <!-- Các file uploader.js, drive.js và script gốc của UI sẽ khai báo tiếp phía dưới -->
+</body>
+</html>
