@@ -70,18 +70,28 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function displayDriveUI(user) {
-        if (loginScreen) loginScreen.classList.add('hidden');
-        if (mainDrive) mainDrive.classList.remove('hidden');
+    if (loginScreen) loginScreen.classList.add('hidden');
+    if (mainDrive) mainDrive.classList.remove('hidden');
+    
+    const avatarUrl = user.avatar 
+        ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png`
+        : `https://cdn.discordapp.com/embed/avatars/0.png`;
         
-        const avatarUrl = user.avatar 
-            ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png`
-            : `https://cdn.discordapp.com/embed/avatars/0.png`;
-            
-        const uiAvatar = document.getElementById('user-avatar');
-        const uiName = document.getElementById('user-name');
-        
-        if (uiAvatar) uiAvatar.src = avatarUrl;
-        if (uiName) uiName.textContent = user.global_name || user.username;
+    const uiAvatar = document.getElementById('user-avatar');
+    const uiName = document.getElementById('user-name');
+    
+    if (uiAvatar) uiAvatar.src = avatarUrl;
+    if (uiName) uiName.textContent = user.global_name || user.username;
+
+    // =========================================================
+    // 🔥 KÍCH HOẠT DRIVE NGAY TẠI ĐÂY KHI LOGIN THÀNH CÔNG
+    // =========================================================
+    // Kiểm tra xem hàm load file ở file JS khác đã sẵn sàng chưa
+    if (typeof loadDriveFiles === "function") {
+        loadDriveFiles(); // Gọi hàm này để tự load danh sách file lên màn hình
+    } else if (typeof fetchFiles === "function") {
+        fetchFiles();
+    }
     }
 
     function showLoginScreen() {
